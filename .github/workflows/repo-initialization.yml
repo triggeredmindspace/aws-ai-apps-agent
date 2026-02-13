@@ -1,0 +1,55 @@
+name: Initialize awesome-aws-ai-apps Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_name:
+        description: 'Repository name'
+        required: false
+        default: 'awesome-aws-ai-apps'
+      repo_visibility:
+        description: 'Repository visibility'
+        required: false
+        default: 'public'
+        type: choice
+        options:
+          - public
+          - private
+
+permissions:
+  contents: read
+
+jobs:
+  initialize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Initialize repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REPO_NAME: ${{ github.event.inputs.repo_name }}
+          REPO_VISIBILITY: ${{ github.event.inputs.repo_visibility }}
+        run: python scripts/initialize_repo.py
+
+      - name: Display results
+        if: always()
+        run: |
+          if [ -f data/initialization_summary.md ]; then
+            echo "## Repository Initialization Complete" >> $GITHUB_STEP_SUMMARY
+            cat data/initialization_summary.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Initialization failed or no summary generated" >> $GITHUB_STEP_SUMMARY
+          fi

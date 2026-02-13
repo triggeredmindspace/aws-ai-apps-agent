@@ -1,0 +1,82 @@
+services:
+  bedrock:
+    name: Amazon Bedrock
+    use_cases:
+      - LLM inference
+      - RAG
+      - Agents
+    priority: 1
+
+  lambda:
+    name: AWS Lambda
+    use_cases:
+      - Serverless compute
+      - API backends
+    priority: 1
+
+  sagemaker:
+    name: Amazon SageMaker
+    use_cases:
+      - Model training
+      - Model deployment
+      - Endpoints
+    priority: 2
+
+  s3:
+    name: Amazon S3
+    use_cases:
+      - Document storage
+      - Model artifacts
+      - Data lake
+    priority: 1
+
+  dynamodb:
+    name: Amazon DynamoDB
+    use_cases:
+      - Session storage
+      - Vector DB
+      - Metadata
+    priority: 2
+
+  opensearch:
+    name: Amazon OpenSearch
+    use_cases:
+      - Vector search
+      - RAG
+      - Semantic search
+    priority: 2
+
+  api_gateway:
+    name: Amazon API Gateway
+    use_cases:
+      - REST APIs
+      - WebSocket APIs
+    priority: 2
+
+  eventbridge:
+    name: Amazon EventBridge
+    use_cases:
+      - Event-driven architecture
+      - Scheduling
+    priority: 3
+
+  kinesis:
+    name: Amazon Kinesis
+    use_cases:
+      - Real-time streaming
+      - Data pipelines
+    priority: 3
+
+  ecs:
+    name: Amazon ECS
+    use_cases:
+      - Container orchestration
+      - Long-running services
+    priority: 3
+
+  step_functions:
+    name: AWS Step Functions
+    use_cases:
+      - Workflow orchestration
+      - State machines
+    priority: 3

@@ -1,0 +1,40 @@
+categories:
+  - name: bedrock_ai_agents
+    description: AI agents using AWS Bedrock foundation models
+    priority: 1
+    target_count: 20
+
+  - name: serverless_ai_apps
+    description: Serverless AI applications using Lambda and API Gateway
+    priority: 2
+    target_count: 15
+
+  - name: rag_on_aws
+    description: RAG applications with AWS services (Bedrock, OpenSearch, S3)
+    priority: 1
+    target_count: 20
+
+  - name: sagemaker_ml_apps
+    description: ML applications using Amazon SageMaker
+    priority: 2
+    target_count: 15
+
+  - name: realtime_ai_streaming
+    description: Real-time AI with Kinesis and Lambda
+    priority: 3
+    target_count: 10
+
+  - name: multimodal_ai
+    description: Multimodal AI with Bedrock (text, image, video)
+    priority: 2
+    target_count: 12
+
+  - name: ai_content_generation
+    description: Content generation with AI (text, images, video)
+    priority: 2
+    target_count: 12
+
+  - name: conversational_ai
+    description: Chatbots and voice assistants on AWS
+    priority: 1
+    target_count: 15

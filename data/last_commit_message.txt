@@ -1,0 +1,6 @@
+feat: add 1 new app(s)
+
+New applications:
+- LiveStream Sentiment Pulse Analytics
+
+Co-Authored-By: AWS AI Apps Bot <bot@awesome-aws-ai-apps.dev>
