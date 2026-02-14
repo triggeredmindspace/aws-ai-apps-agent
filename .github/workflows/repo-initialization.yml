@@ -38,7 +38,7 @@ jobs:
 
       - name: Initialize repository
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REPO_NAME: ${{ github.event.inputs.repo_name }}
           REPO_VISIBILITY: ${{ github.event.inputs.repo_visibility }}

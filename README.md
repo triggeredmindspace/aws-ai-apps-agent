@@ -78,6 +78,9 @@ TARGET_REPO=awesome-aws-ai-apps
 3. Name it "AWS AI Apps Agent"
 4. Select scopes: `repo`, `workflow`
 5. Generate and save the token
+6. Add this token as a secret named `REPO_ACCESS_TOKEN` in your repository settings
+
+**Important:** The `REPO_ACCESS_TOKEN` secret is required for the automation to push to the target repository. The built-in `GITHUB_TOKEN` does not have sufficient permissions for cross-repository operations.
 
 ### 4. Configure GitHub Secrets
 
@@ -86,7 +89,7 @@ For GitHub Actions to work, add these secrets to your repository:
 1. Go to your repository → Settings → Secrets and variables → Actions
 2. Add the following secrets:
    - `ANTHROPIC_API_KEY` - Your Anthropic API key
-   - `GITHUB_TOKEN` - Your GitHub Personal Access Token (with repo and workflow permissions)
+   - `REPO_ACCESS_TOKEN` - Your GitHub Personal Access Token (with repo and workflow permissions)
 
 ### 5. Initialize the Target Repository
 
@@ -288,7 +291,18 @@ export OPENAI_API_KEY=your_key
 
 ### Issue: "Permission denied" when pushing
 
-**Solution:** Check that your GitHub token has the `repo` and `workflow` scopes.
+**Solution:** This happens when using the built-in `GITHUB_TOKEN` instead of a Personal Access Token.
+
+1. Create a Personal Access Token with `repo` and `workflow` scopes:
+   - Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - Click "Generate new token (classic)"
+   - Select scopes: `repo`, `workflow`
+   - Generate the token
+2. Add it as a repository secret:
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Add a new secret named `REPO_ACCESS_TOKEN`
+   - Paste your Personal Access Token as the value
+3. The workflows will automatically use this token for cross-repository operations
 
 ### Issue: "Import errors"
 
