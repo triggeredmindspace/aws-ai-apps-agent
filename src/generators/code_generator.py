@@ -73,7 +73,7 @@ class CodeGenerator:
                 prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=0.3,  # Lower temperature for more predictable code
-                max_tokens=4096
+                max_tokens=2048
             )
 
             # Clean and extract code
@@ -181,7 +181,7 @@ class CodeGenerator:
             template = self.llm.generate(
                 prompt=prompt,
                 temperature=0.3,
-                max_tokens=4096
+                max_tokens=2048
             )
 
             # Extract YAML if in code blocks
