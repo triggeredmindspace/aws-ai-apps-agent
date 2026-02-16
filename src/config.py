@@ -31,10 +31,11 @@ class GitHubConfig:
 @dataclass
 class GenerationConfig:
     """Generation behavior configuration"""
-    new_apps_per_day: int = 1
-    bug_fixes_per_day: int = 2
+    new_apps_per_week: int = 1
+    new_app_day: int = 1  # Monday (0=Mon, 6=Sun)
+    bug_fixes_per_day: int = 1
     improvements_per_day: int = 1
-    doc_updates_per_day: int = 1
+    doc_updates_per_day: int = 0
     preferred_frameworks: list = field(default_factory=list)
     preferred_aws_services: list = field(default_factory=list)
 
@@ -80,10 +81,11 @@ class Config:
 
     def _load_generation_config(self) -> GenerationConfig:
         return GenerationConfig(
-            new_apps_per_day=int(os.getenv('NEW_APPS_PER_DAY', '1')),
-            bug_fixes_per_day=int(os.getenv('BUG_FIXES_PER_DAY', '2')),
+            new_apps_per_week=int(os.getenv('NEW_APPS_PER_WEEK', '1')),
+            new_app_day=int(os.getenv('NEW_APP_DAY', '0')),  # 0=Monday
+            bug_fixes_per_day=int(os.getenv('BUG_FIXES_PER_DAY', '1')),
             improvements_per_day=int(os.getenv('IMPROVEMENTS_PER_DAY', '1')),
-            doc_updates_per_day=int(os.getenv('DOC_UPDATES_PER_DAY', '1'))
+            doc_updates_per_day=int(os.getenv('DOC_UPDATES_PER_DAY', '0'))
         )
 
     def _load_categories(self) -> dict:

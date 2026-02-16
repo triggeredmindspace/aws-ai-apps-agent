@@ -61,13 +61,17 @@ class DailyIterator:
         }
 
         try:
-            # 1. Generate new applications
-            logger.info("Generating new applications...")
-            new_apps = self._generate_new_apps()
-            iteration_summary['new_apps'] = new_apps
+            # 1. Generate new applications (only on designated day, e.g. Monday)
+            today = datetime.now().weekday()  # 0=Monday, 6=Sunday
+            if today == self.config.generation.new_app_day:
+                logger.info("It's new app day! Generating new applications...")
+                new_apps = self._generate_new_apps()
+                iteration_summary['new_apps'] = new_apps
+            else:
+                logger.info(f"Skipping new app generation (runs on day {self.config.generation.new_app_day}, today is {today})")
 
             # 2. Fix bugs in existing apps (if any exist)
-            if self.registry.get_total_apps() > 0:
+            if self.registry.get_total_apps() > 0 and self.config.generation.bug_fixes_per_day > 0:
                 logger.info("Reviewing and fixing bugs...")
                 bugs_fixed = self._fix_bugs()
                 iteration_summary['bugs_fixed'] = bugs_fixed
@@ -97,7 +101,7 @@ class DailyIterator:
             logger.error("TARGET_REPO_PATH not set in environment")
             return new_apps
 
-        for _ in range(self.config.generation.new_apps_per_day):
+        for _ in range(self.config.generation.new_apps_per_week):
             try:
                 # Select category
                 category = self._select_category()
