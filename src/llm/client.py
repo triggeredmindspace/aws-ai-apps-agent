@@ -1,8 +1,9 @@
 """
 LLM client abstraction supporting both Anthropic Claude and OpenAI.
-Provides a unified interface for code generation tasks.
+Supports Message Batches API for 50% cost reduction.
 """
 
+import time
 from typing import Optional, List, Dict
 from abc import ABC, abstractmethod
 from src.utils.logger import get_logger
@@ -19,7 +20,7 @@ class LLMClient(ABC):
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
         """Generate text from a prompt"""
         pass
@@ -30,16 +31,31 @@ class LLMClient(ABC):
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
         """Generate text from a conversation history"""
         pass
 
+    def generate_batch(
+        self,
+        requests: Dict[str, dict],
+        poll_interval: int = 10,
+        max_wait: int = 600
+    ) -> Dict[str, str]:
+        """
+        Submit multiple prompts as a batch for cost savings.
+        Default: falls back to sequential calls.
+        """
+        results = {}
+        for req_id, params in requests.items():
+            results[req_id] = self.generate(**params)
+        return results
+
 
 class AnthropicClient(LLMClient):
-    """Anthropic Claude client implementation"""
+    """Anthropic Claude client with Message Batches API support (50% off)"""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-5-20250929"):
+    def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001"):
         try:
             import anthropic
             self.client = anthropic.Anthropic(api_key=api_key)
@@ -52,9 +68,9 @@ class AnthropicClient(LLMClient):
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
-        """Generate text using Claude"""
+        """Generate text using Claude (single request, full price)"""
         try:
             message = self.client.messages.create(
                 model=self.model,
@@ -73,7 +89,7 @@ class AnthropicClient(LLMClient):
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
         """Generate text from conversation history"""
         try:
@@ -88,6 +104,78 @@ class AnthropicClient(LLMClient):
         except Exception as e:
             logger.error(f"Claude API error: {e}")
             raise
+
+    def generate_batch(
+        self,
+        requests: Dict[str, dict],
+        poll_interval: int = 10,
+        max_wait: int = 600
+    ) -> Dict[str, str]:
+        """
+        Submit multiple prompts via the Message Batches API (50% cheaper).
+        Falls back to sequential calls if batch fails or times out.
+        """
+        if len(requests) < 2:
+            return super().generate_batch(requests, poll_interval, max_wait)
+
+        logger.info(f"Submitting batch of {len(requests)} requests (50% cost savings)")
+
+        try:
+            # Build batch requests
+            batch_requests = []
+            for req_id, params in requests.items():
+                batch_requests.append({
+                    "custom_id": req_id,
+                    "params": {
+                        "model": self.model,
+                        "max_tokens": params.get("max_tokens", 2048),
+                        "temperature": params.get("temperature", 0.7),
+                        "system": params.get("system_prompt", "") or "",
+                        "messages": [{"role": "user", "content": params["prompt"]}]
+                    }
+                })
+
+            # Create the batch
+            batch = self.client.messages.batches.create(requests=batch_requests)
+            batch_id = batch.id
+            logger.info(f"Batch created: {batch_id}")
+
+            # Poll for completion
+            elapsed = 0
+            while elapsed < max_wait:
+                batch = self.client.messages.batches.retrieve(batch_id)
+
+                if batch.processing_status == "ended":
+                    logger.info(f"Batch {batch_id} completed in {elapsed}s")
+                    break
+
+                logger.debug(f"Batch {batch_id}: {batch.processing_status} ({elapsed}s)")
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+            else:
+                logger.warning(f"Batch timed out after {max_wait}s, falling back to sequential")
+                return super().generate_batch(requests, poll_interval, max_wait)
+
+            # Retrieve results
+            results = {}
+            for result in self.client.messages.batches.results(batch_id):
+                req_id = result.custom_id
+                if result.result.type == "succeeded":
+                    results[req_id] = result.result.message.content[0].text
+                else:
+                    logger.error(f"Batch request {req_id} failed, retrying individually")
+                    if req_id in requests:
+                        try:
+                            results[req_id] = self.generate(**requests[req_id])
+                        except Exception:
+                            results[req_id] = ""
+
+            logger.info(f"Batch returned {len(results)}/{len(requests)} results")
+            return results
+
+        except Exception as e:
+            logger.warning(f"Batch API failed ({e}), falling back to sequential")
+            return super().generate_batch(requests, poll_interval, max_wait)
 
 
 class OpenAIClient(LLMClient):
@@ -106,7 +194,7 @@ class OpenAIClient(LLMClient):
         prompt: str,
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
         """Generate text using GPT"""
         try:
@@ -131,7 +219,7 @@ class OpenAIClient(LLMClient):
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int = 4096
+        max_tokens: int = 2048
     ) -> str:
         """Generate text from conversation history"""
         try:
@@ -153,20 +241,7 @@ class OpenAIClient(LLMClient):
 
 
 def create_llm_client(provider: str, api_key: str, model: str) -> LLMClient:
-    """
-    Factory function to create appropriate LLM client.
-
-    Args:
-        provider: 'anthropic' or 'openai'
-        api_key: API key for the provider
-        model: Model name to use
-
-    Returns:
-        LLMClient instance
-
-    Raises:
-        ValueError: If provider is not supported
-    """
+    """Factory function to create appropriate LLM client."""
     if provider == "anthropic":
         return AnthropicClient(api_key, model)
     elif provider == "openai":

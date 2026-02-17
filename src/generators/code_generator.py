@@ -39,25 +39,49 @@ class CodeGenerator:
 
         files = {}
 
-        # 1. Main application file
-        files['app.py'] = self._generate_main_app(idea)
+        # Batch the 3 LLM calls together (50% cheaper via Batches API)
+        batch_requests = {
+            "app_code": {
+                "prompt": self.prompts.generate_app_code_prompt(idea),
+                "system_prompt": self.prompts.code_generation_system_prompt(),
+                "temperature": 0.3,
+                "max_tokens": 2048
+            },
+            "readme": {
+                "prompt": self.prompts.generate_readme_prompt(idea),
+                "temperature": 0.5,
+                "max_tokens": 2048
+            },
+            "cloudformation": {
+                "prompt": self.prompts.generate_cloudformation_prompt(idea),
+                "temperature": 0.3,
+                "max_tokens": 2048
+            }
+        }
 
-        # 2. Requirements.txt
+        batch_results = self.llm.generate_batch(batch_requests)
+
+        # 1. Main application file
+        code = batch_results.get("app_code", "")
+        files['app.py'] = self._extract_code_block(code) if code else self._generate_fallback_app_code(idea)
+
+        # 2. Requirements.txt (no LLM needed)
         files['requirements.txt'] = self._generate_requirements(idea)
 
         # 3. README.md
-        files['README.md'] = self._generate_readme(idea)
+        files['README.md'] = batch_results.get("readme") or self._generate_fallback_readme(idea)
 
-        # 4. Configuration file
+        # 4. Configuration file (no LLM needed)
         files['config.yaml'] = self._generate_config(idea)
 
-        # 5. Environment template
+        # 5. Environment template (no LLM needed)
         files['.env.example'] = self._generate_env_example(idea)
 
         # 6. AWS CloudFormation template
-        files['aws/cloudformation/template.yaml'] = self._generate_cloudformation(idea)
+        cfn = batch_results.get("cloudformation", "")
+        files['aws/cloudformation/template.yaml'] = self._extract_yaml_block(cfn) if cfn else self._generate_fallback_cloudformation(idea)
 
-        # 7. Deployment script
+        # 7. Deployment script (no LLM needed)
         files['aws/deploy.sh'] = self._generate_deploy_script(idea)
 
         logger.info(f"Generated {len(files)} files for {idea['name']}")
